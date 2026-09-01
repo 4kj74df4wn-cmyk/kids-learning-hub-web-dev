@@ -1,7 +1,7 @@
-// Kids Learning Hub — Learner Context Gate v0.10
+// Kids Learning Hub — Learner Context Gate v0.11
 // P0: Do not start learning until grade/term/goal are explicitly confirmed.
 (function(){
-  const GATE_VERSION='0.10.0-dev';
+  const GATE_VERSION='0.11.0-dev';
   const originalEnter=window.enterApp;
   if(typeof originalEnter!=='function'){
     console.error('KLH learner context gate: enterApp unavailable');
@@ -33,14 +33,17 @@
     if(!grade) return showError('เลือกชั้นเรียนของเด็กก่อน');
     if(!term) return showError('เลือกเทอมที่กำลังเรียนก่อน');
     if(!goal) return showError('เลือกเป้าหมายการเรียนก่อน');
-    if(['target','intensive'].includes(goal)&&!target) return showError('ใส่เป้าหมายที่ต้องการเตรียม เช่น PCSHS M.1');
+    if(['target','intensive'].includes(goal)&&!target) return showError('พิมพ์ชื่อโรงเรียนเป้าหมายก่อน');
     clearError();
     originalEnter();
     if(window.state&&state.profile){
       state.profile.learnerContextConfirmed=true;
       state.profile.learnerContextGateVersion=GATE_VERSION;
+      state.profile.targetSchoolName=target||null;
+      state.profile.targetSchoolKnown=el('targetName')?.dataset.schoolKnown==='1';
+      state.profile.targetSchoolCanonical=el('targetName')?.dataset.schoolCanonical||null;
       if(typeof save==='function') save();
-      if(typeof log==='function') log('learner_context_confirmed',{grade:Number(grade),term:Number(term),goalMode:goal,targetName:target,gateVersion:GATE_VERSION});
+      if(typeof log==='function') log('learner_context_confirmed',{grade:Number(grade),term:Number(term),goalMode:goal,targetSchoolName:target,targetSchoolKnown:state.profile.targetSchoolKnown,gateVersion:GATE_VERSION});
     }
   };
 
@@ -52,7 +55,6 @@
     home?.classList.add('hidden');
     learn?.classList.add('hidden');
     telemetry?.classList.add('hidden');
-    // Force a conscious choice once after this architecture change.
     if(el('learnerGrade')) el('learnerGrade').value='';
     if(el('learnerTerm')) el('learnerTerm').value='';
     if(el('goalMode')) el('goalMode').value='';
@@ -60,4 +62,14 @@
   }
 
   forceContextSetupWhenNeeded();
+
+  // Load school autocomplete after the context fields exist.
+  if(!document.querySelector('script[data-klh-school-autocomplete]')){
+    const s=document.createElement('script');
+    s.src='./school-target-autocomplete-v011.js?v=0.11.0';
+    s.async=false;
+    s.dataset.klhSchoolAutocomplete='1';
+    s.onerror=()=>console.error('KLH school autocomplete failed to load');
+    document.body.appendChild(s);
+  }
 })();
